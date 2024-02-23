@@ -1,87 +1,83 @@
 package springbook.user.dao;
 
-import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import springbook.user.domain.User;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 
 public class UserDao {
 
-    private DataSource dataSource;
+    private RowMapper<User> userMapper = new RowMapper<User>() {
+        @Override
+        public User mapRow(ResultSet resultSet, int i) throws SQLException {
+            User user = new User();
+            user.setId(resultSet.getString("id"));
+            user.setName(resultSet.getString("name"));
+            user.setPassword(resultSet.getString("password"));
+            return user;
+        }
+    };
+
+    private JdbcTemplate jdbcTemplate;
 
     public void setDataSource(DataSource dataSource) {
-        this.dataSource = dataSource;
+        this.jdbcTemplate = new JdbcTemplate(dataSource);
     }
 
-    public void add(User user) throws SQLException {
-        Connection c = dataSource.getConnection();
 
-        PreparedStatement ps = c.prepareStatement(
-                "INSERT INTO USERS(id, name, password) values(?, ?, ?)");
-        ps.setString(1, user.getId());
-        ps.setString(2, user.getName());
-        ps.setString(3, user.getPassword());
-
-        ps.executeUpdate();
-
-        ps.close();
-        c.close();
+    public void add(User user) {
+        this.jdbcTemplate.update("INSERT INTO users(id, name, password) VALUES(?, ?, ?)", user.getId(), user.getName(), user.getPassword());
     }
 
     public User get(String id) throws SQLException {
-        Connection c = dataSource.getConnection();
-        PreparedStatement ps = c
-                .prepareStatement("select * from users where id = ?");
-        ps.setString(1, id);
-
-        ResultSet rs = ps.executeQuery();
-
-        User user = null;
-        if (rs.next()) {
-            user = new User();
-            user.setId(rs.getString("id"));
-            user.setName(rs.getString("name"));
-            user.setPassword(rs.getString("password"));
-        }
-
-        rs.close();
-        ps.close();
-        c.close();
-
-        if (user == null) {
-            throw new EmptyResultDataAccessException(1);
-        }
-
-        return user;
+        return this.jdbcTemplate.queryForObject("SELECT * FROM users WHERE id = ?", new Object[]{id}, this.userMapper);
     }
 
-    public void deleteAll() throws SQLException {
-        Connection c = dataSource.getConnection();
+    public void deleteAll() {
+        /**
+         * 내장 콜백 사용
+         */
+        this.jdbcTemplate.update("DELETE FROM users");
 
-        PreparedStatement ps = c.prepareStatement("DELETE FROM users");
-        ps.executeUpdate();
-
-        ps.close();
-        c.close();
+        /**
+         * 콜백 지정
+         */
+//        this.jdbcTemplate.update(new PreparedStatementCreator() {
+//            @Override
+//            public PreparedStatement createPreparedStatement(Connection connection) throws SQLException {
+//                return connection.prepareStatement("DELETE FROM users");
+//            }
+//        });
     }
 
     public int getCount() throws SQLException {
-        Connection c = dataSource.getConnection();
+        /**
+         * 내장 콜백 사용
+         */
+        return this.jdbcTemplate.queryForInt("SELECT COUNT(*) FROM users");
 
-        PreparedStatement ps = c.prepareStatement("SELECT COUNT(*) FROM users");
+        /**
+         * 콜백 지정
+         */
+//        return this.jdbcTemplate.query(new PreparedStatementCreator() {
+//            @Override
+//            public PreparedStatement createPreparedStatement(Connection connection) throws SQLException {
+//                return connection.prepareStatement("SELECT COUNT(*) FROM users");
+//            }
+//        }, new ResultSetExtractor<Integer>() {
+//            @Override
+//            public Integer extractData(ResultSet resultSet) throws SQLException, DataAccessException {
+//                resultSet.next();
+//                return resultSet.getInt(1);
+//            }
+//        });
+    }
 
-        ResultSet rs = ps.executeQuery();
-        rs.next();
-        int count = rs.getInt(1);
-
-        rs.close();
-        ps.close();
-        c.close();
-
-        return count;
+    public List<User> getAll() {
+        return this.jdbcTemplate.query("SELECT * FROM users ORDER BY id", this.userMapper);
     }
 }
