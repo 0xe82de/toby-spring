@@ -1,17 +1,19 @@
-package springbook.user.dao;
+package springbook.user.dao.legacy;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.datasource.SimpleDriverDataSource;
+import springbook.user.dao.UserDao;
+import springbook.user.dao.UserDaoJdbc;
 
 import javax.sql.DataSource;
 
-@Configuration
+//@Configuration
 public class DaoFactory {
 
     @Bean
     public UserDao userDao() {
-        UserDao userDao = new UserDao();
+        UserDaoJdbc userDao = new UserDaoJdbc();
         userDao.setDataSource(dataSource());
         return userDao;
     }

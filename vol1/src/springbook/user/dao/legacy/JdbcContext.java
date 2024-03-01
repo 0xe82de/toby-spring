@@ -1,4 +1,4 @@
-package springbook.user.dao;
+package springbook.user.dao.legacy;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
