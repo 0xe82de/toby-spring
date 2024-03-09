@@ -2,6 +2,7 @@ package springbook.user.dao;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import springbook.user.domain.Level;
 import springbook.user.domain.User;
 
 import javax.sql.DataSource;
@@ -13,11 +14,15 @@ public class UserDaoJdbc implements UserDao {
 
     private RowMapper<User> userMapper = new RowMapper<User>() {
         @Override
-        public User mapRow(ResultSet resultSet, int i) throws SQLException {
+        public User mapRow(ResultSet rs, int rowNum) throws SQLException {
             User user = new User();
-            user.setId(resultSet.getString("id"));
-            user.setName(resultSet.getString("name"));
-            user.setPassword(resultSet.getString("password"));
+            user.setId(rs.getString("id"));
+            user.setName(rs.getString("name"));
+            user.setPassword(rs.getString("password"));
+            user.setLevel(Level.valueOf(rs.getInt("level")));
+            user.setLogin(rs.getInt("login"));
+            user.setRecommend(rs.getInt("recommend"));
+            user.setEmail(rs.getString("email"));
             return user;
         }
     };
@@ -29,9 +34,8 @@ public class UserDaoJdbc implements UserDao {
     }
 
     @Override
-
     public void add(User user) {
-        this.jdbcTemplate.update("INSERT INTO users(id, name, password) VALUES(?, ?, ?)", user.getId(), user.getName(), user.getPassword());
+        this.jdbcTemplate.update("INSERT INTO users(id, name, password, level, login, recommend, email) VALUES(?, ?, ?, ?, ?, ?, ?)", user.getId(), user.getName(), user.getPassword(), user.getLevel().intValue(), user.getLogin(), user.getRecommend(), user.getEmail());
     }
 
     @Override
@@ -84,5 +88,10 @@ public class UserDaoJdbc implements UserDao {
     @Override
     public List<User> getAll() {
         return this.jdbcTemplate.query("SELECT * FROM users ORDER BY id", this.userMapper);
+    }
+
+    @Override
+    public void update(User user) {
+        this.jdbcTemplate.update("UPDATE users SET name = ?, password = ?, level = ?, login = ?, recommend = ?, email = ? WHERE id = ?", user.getName(), user.getPassword(), user.getLevel().intValue(), user.getLogin(), user.getRecommend(), user.getEmail(), user.getId());
     }
 }
